@@ -32,6 +32,10 @@
     background:linear-gradient(90deg,#39c46f,#7dffae); transition:width .15s;}
   .hplabel{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     font-size:11px; font-weight:800; text-shadow:0 1px 2px #000;}
+  /* ゲーム画面の小広告 */
+  #adGame{flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+    min-height:52px; background:#0008; border-bottom:1px solid var(--line); overflow:hidden;}
+  #adGame:empty{display:none;}
   /* field */
   #fieldwrap{flex:1 1 auto; position:relative; overflow:hidden;}
   #cv{position:absolute; inset:0; width:100%; height:100%; display:block;}
@@ -126,6 +130,8 @@
     </div>
   </div>
 
+  <div id="adGame"></div>
+
   <div id="fieldwrap">
     <canvas id="cv"></canvas>
     <div id="coreline"></div>
@@ -189,18 +195,20 @@
    ====================================================================== */
 
 /* ---------- 忍者AdMax 挿入ヘルパー（iframe方式） ----------
-   ADMAX_HTML に実際の忍者AdMaxタグを貼り付けてください。 */
-const ADMAX_HTML = ``; // ← ここに <script ...> の忍者AdMaxコードを貼る
-function injectAd(el, w, h){
+   小＝ゲーム画面用 / 大＝ホーム(タイトル・リザルト)用 */
+const ADMAX_SMALL = `<!-- admax --><script src="https://adm.shinobi.jp/s/7e51957427134463f1aac593aa2a5878"><\/script><!-- admax -->`;
+const ADMAX_LARGE = `<!-- admax --><script src="https://adm.shinobi.jp/s/ab22e328b2cf8b2f0542defdac33ca6e"><\/script><!-- admax -->`;
+function injectAd(el, w, h, html){
   if(!el) return;
-  if(!ADMAX_HTML){ return; } // 未設定ならプレースホルダ表示のまま
+  const ad = html || '';
+  if(!ad){ return; } // 未設定ならプレースホルダのまま
   el.innerHTML = '';
   const ifr = document.createElement('iframe');
   ifr.style.border='0'; ifr.setAttribute('scrolling','no');
   ifr.width = w||320; ifr.height = h||50;
   el.appendChild(ifr);
   const d = ifr.contentDocument || ifr.contentWindow.document;
-  d.open(); d.write('<body style="margin:0;overflow:hidden">'+ADMAX_HTML+'</body>'); d.close();
+  d.open(); d.write('<body style="margin:0;overflow:hidden;display:flex;justify-content:center">'+ad+'</body>'); d.close();
 }
 
 /* ===================== サウンド（WebAudio簡易チップ） ===================== */
@@ -333,9 +341,27 @@ const BASE_WIDE = [
 "................",
 "................",
 ];
+const BASE_TALL2 = [   // 縦長その2：頭＋胴の積み重ね型
+"................",
+".....BBBB.......",
+"....BBBBBB......",
+"....BHBBBB......",
+"....wwBBww......",
+"....wpBBpw......",
+"..BBBBBBBBBB....",
+".BBBBBBBBBBBB...",
+".BBBBBBBBBBBB...",
+".BBBBmmmmBBBB...",
+".BBBBBBBBBBBB...",
+"..BBBBBBBBBB....",
+"...DBBBBBBD.....",
+"....DDDDDD......",
+"................",
+"................",
+];
 function makeSprite(type){
   const t=SLIME[type];
-  const mask = t.shape==='tall'?BASE_TALL : t.shape==='wide'?BASE_WIDE : BASE;
+  const mask = t.shape==='tall'?BASE_TALL : t.shape==='tall2'?BASE_TALL2 : t.shape==='wide'?BASE_WIDE : BASE;
   const cv=document.createElement('canvas'); cv.width=SPR*SCALE; cv.height=SPR*SCALE;
   const c=cv.getContext('2d'); c.imageSmoothingEnabled=false;
   const body=t.color, dark=t.dark||shade(body,-70), hi=t.hi||shade(body,90);
@@ -399,12 +425,17 @@ const SLIME = {
   healer: {name:'ヒーラー', color:'#ff8ad0', hp:7,  speed:22, size:36, coin:6, leak:6, heal:true},
   // ▼ 見た目ユニークな分裂スライム（縦長 / 横長）
   tall:   {name:'のっぽ',   color:'#5fe0c2', hp:6,  speed:30, size:44, coin:4, leak:7, shape:'tall', splitOnDeath:['normal','normal']},
-  worm:   {name:'ひょろり', color:'#c77dff', hp:5,  speed:42, size:40, coin:4, leak:6, shape:'tall', splitOnDeath:['mini','mini']},
+  worm:   {name:'ひょろり', color:'#c77dff', hp:5,  speed:42, size:40, coin:4, leak:6, shape:'tall2', splitOnDeath:['mini','mini']},
   pan:    {name:'ぺたん',   color:'#62c6ff', hp:6,  speed:34, size:48, coin:4, leak:7, shape:'wide', splitOnDeath:['blue','blue']},
   jumbo:  {name:'ジャンボ', color:'#ffb050', hp:14, speed:22, size:58, coin:9, leak:12,shape:'wide', splitOnDeath:['tall','pan']},
   king:   {name:'キング',   color:'#7c5cff', hp:28, speed:18, size:54, coin:12,leak:18, crown:true, angry:true, splitOnDeath:['normal','normal','green2']},
   devil:  {name:'デビル',   color:'#e0413f', hp:20, speed:30, size:42, coin:8, leak:14, horns:true, angry:true, wobble:2},
   boss:   {name:'ボス',     color:'#b03cff', hp:260,speed:13, size:88, coin:120,leak:50, crown:true, angry:true, boss:true, armorReduce:0.2, splitOnDeath:['devil','red','red']},
+  // ▼ 追加ボス（大型・種類増し）
+  mother: {name:'マザー',   color:'#46c98a', hp:240, speed:12, size:84, coin:140, leak:46, boss:true, angry:true, armorReduce:0.15, spawner:true, spawnGap:1500, spawnTypes:['mini','mini','normal','blue']},
+  titan:  {name:'タイタン', color:'#8a93a3', hp:430, speed:9,  size:96, coin:170, leak:60, boss:true, armor:true, angry:true, armorReduce:0.5, splitOnDeath:['armor','armor']},
+  behemoth:{name:'ベヒモス',color:'#ff7a3c', hp:300, speed:16, size:92, coin:150, leak:52, boss:true, shape:'wide', splitOnDeath:['devil','pan','pan']},
+  overlord:{name:'オーバーロード',color:'#c33cff', hp:520, speed:11, size:104,coin:220, leak:66, boss:true, crown:true, angry:true, armorReduce:0.25, spawner:true, spawnGap:1200, spawnTypes:['red','speed','shield'], splitOnDeath:['king','devil']},
 };
 
 /* ===================== 武器定義 ===================== */
@@ -471,23 +502,35 @@ function pickType(){
   return pool[(Math.random()*pool.length)|0];
 }
 function spawnSlime(type,x,y,scale){
-  const t=SLIME[type]; const hpMul=1+(G.wave-1)*0.18;
+  const t=SLIME[type];
+  const late=Math.max(0, G.wave-15);                 // wave15以降の追加難易度
+  const hpMul=1+(G.wave-1)*0.18 + late*0.05;          // HPを少しずつ上乗せ
+  const spdMul=1+Math.min(late*0.022, 0.6);           // スピードを少しずつ上乗せ(最大+60%)
   const size=(t.size)*(scale||1);
   const s={
     type, t, x: x!==undefined?x:(20+Math.random()*(W-40)),
     y: y!==undefined?y:-30,
     hp: Math.ceil(t.hp*hpMul*(scale?scale:1)), maxhp:0,
     size, r:size/2,
-    spd:t.speed*(0.85+Math.random()*0.3),
+    spd:t.speed*spdMul*(0.85+Math.random()*0.3),
     phase:Math.random()*Math.PI*2,
     shield:t.shield||0, frozen:0, poison:null, flash:0, healCd:0, scale:scale||1, dead:false,
+    spawnCd:t.spawnGap||0,
   };
   s.maxhp=s.hp;
   G.slimes.push(s);
 }
 function spawnBoss(){
   Sound.play('thunder'); G.shake=12;
-  spawnSlime('boss', W/2, -60);
+  const roster = G.wave<10 ? ['boss']
+               : G.wave<20 ? ['boss','mother','behemoth']
+               : ['boss','mother','titan','behemoth','overlord'];
+  const count = G.wave>=30 ? 3 : G.wave>=18 ? 2 : 1;   // 進むほど同時出現
+  for(let i=0;i<count;i++){
+    const bt = roster[(Math.random()*roster.length)|0];
+    const bx = W*((i+1)/(count+1));
+    spawnSlime(bt, bx, -60 - i*80);
+  }
 }
 
 /* ===================== ダメージ処理 ===================== */
@@ -646,6 +689,13 @@ function update(dt, now){
     if(s.t.heal){ s.healCd-=dt; if(s.healCd<=0){ s.healCd=1400;
       for(const o of G.slimes){ if(o!==s&&!o.dead){ const d=(o.x-s.x)**2+(o.y-s.y)**2; if(d<90*90&&o.hp<o.maxhp){ o.hp=Math.min(o.maxhp,o.hp+1); o.flash=4; } } }
       G.effects.push({type:'heal',x:s.x,y:s.y,r:90,life:14,max:14,color:'#ff8ad0'});
+    } }
+    // 雑魚を吐き出すボス
+    if(s.t.spawner){ s.spawnCd-=dt; if(s.spawnCd<=0 && G.slimes.length<72){ s.spawnCd=s.t.spawnGap;
+      const z=s.t.spawnTypes[(Math.random()*s.t.spawnTypes.length)|0];
+      spawnSlime(z, s.x+(Math.random()-0.5)*36, s.y+s.r*0.5);
+      G.effects.push({type:'heal',x:s.x,y:s.y,r:s.r+10,life:12,max:12,color:'#9effc0'});
+      Sound.play('coin');
     } }
     // コア到達
     if(s.y - s.r > H){
@@ -898,12 +948,13 @@ function startGame(){
   WEAPONS.forEach(w=>G.wlevel[w.id]=1);
   el('title').classList.add('hidden'); el('gameover').classList.add('hidden'); el('pause').classList.add('hidden');
   buildWeaponBar(); resize(); last=performance.now();
+  injectAd(el('adGame'),320,50,ADMAX_SMALL);
 }
 function gameOver(){
   G.state='over'; Sound.stopBgm(); Sound.play('over');
   el('goScore').textContent=G.score; el('goWave').textContent=G.wave; el('goKills').textContent=G.kills;
   el('gameover').classList.remove('hidden');
-  injectAd(el('adOver'),320,50);
+  injectAd(el('adOver'),300,250,ADMAX_LARGE);
 }
 function togglePause(){
   if(G.state==='playing'){ G.state='paused'; el('pause').classList.remove('hidden'); }
@@ -927,7 +978,7 @@ el('muteBtn').addEventListener('click',()=>{ Sound.init(); const m=Sound.toggleM
 /* ===================== 起動 ===================== */
 function boot(){
   resize(); buildWeaponBar();
-  injectAd(el('adTitle'),320,50);
+  injectAd(el('adTitle'),300,250,ADMAX_LARGE);
   requestAnimationFrame(loop);
 }
 window.addEventListener('load',()=>{ setTimeout(boot,30); });
