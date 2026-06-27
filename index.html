@@ -152,6 +152,12 @@
     </div>
     <div class="hint">湧いてくるスライムを<b style="color:var(--gold)">タップでつぶす</b>。<br>
       コインで武器を増やして強化、<br>下から逃がすとコアがダメージ！</div>
+    <div class="hint" style="font-size:12px; opacity:.92; line-height:1.7;">
+      <b style="color:var(--gold)">🛒 ショップ／武器強化</b><br>
+      コインで武器を<b>購入・強化</b>。強化すると<b>威力・範囲</b>がアップ。<br>
+      武器ごとに効果（爆発・凍結・連鎖など）が違うので<b>持ち替え</b>て使おう。<br>
+      <b>🛡×</b> の盾を持つ敵はその武器（や🤖砲台）が効かない！別の武器で倒そう。
+    </div>
     <button class="btn pulse" id="startBtn">▶ はじめる</button>
     <div class="ad-slot" id="adTitle">広告スペース（忍者AdMax）</div>
   </div>
@@ -305,23 +311,23 @@ function shade(hex,amt){
   return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
 }
 /* 縦長・横長の体型マスク（shape指定の種だけ別形状） */
-const BASE_TALL = [
+const BASE_TALL = [   // のっぽ：平らな頭＋足つきの縦長ジェリー
 "................",
-".......BB.......",
-"......BBBB......",
-".....BBBBBB.....",
-".....BHBBBB.....",
-".....BHBBBB.....",
-".....BBBBBB.....",
-".....BBBBBB.....",
-"....BwwBBwwB....",
-"....BwpBBpwB....",
-".....BBBBBB.....",
-".....BBmmBB.....",
-".....BBBBBB.....",
-".....BBBBBB.....",
-"....DBBBBBBD....",
-".....DDDDDD.....",
+"....BBBBBBBB....",
+"...BBBBBBBBBB...",
+"...BHBBBBBBBB...",
+"...BBBBBBBBBB...",
+"...BwwBBBBwwB...",
+"...BwpBBBBpwB...",
+"...BBBBBBBBBB...",
+"...BBBBmmBBBB...",
+"...BBBBBBBBBB...",
+"...BBBBBBBBBB...",
+"...BBBBBBBBBB...",
+"...BBBBBBBBBB...",
+"...DBBBBBBBBD...",
+"....DDBBBBDD....",
+"....DD....DD....",
 ];
 const BASE_WIDE = [
 "................",
@@ -341,23 +347,23 @@ const BASE_WIDE = [
 "................",
 "................",
 ];
-const BASE_TALL2 = [   // 縦長その2：頭＋胴の積み重ね型
-"................",
-".....BBBB.......",
-"....BBBBBB......",
-"....BHBBBB......",
-"....wwBBww......",
-"....wpBBpw......",
-"..BBBBBBBBBB....",
-".BBBBBBBBBBBB...",
-".BBBBBBBBBBBB...",
-".BBBBmmmmBBBB...",
-".BBBBBBBBBBBB...",
-"..BBBBBBBBBB....",
-"...DBBBBBBD.....",
-"....DDDDDD......",
-"................",
-"................",
+const BASE_TALL2 = [   // ひょろり：触角つきイモムシ（節のある縦長）
+".....D...D......",
+".....B...B......",
+"....BBBBBBBB....",
+"...BBBBBBBBBB...",
+"...BwwBBBBwwB...",
+"...BwpBBBBpwB...",
+"...BBBBmmBBBB...",
+"....BBBBBBBB....",
+"...BBBBBBBBBB...",
+"...BBBBBBBBBB...",
+"....BBBBBBBB....",
+"...BBBBBBBBBB...",
+"...BBBBBBBBBB...",
+"....BBBBBBBB....",
+"....DBBBBBBD....",
+".....DDDDDD.....",
 ];
 function makeSprite(type){
   const t=SLIME[type];
@@ -404,6 +410,11 @@ function makeSprite(type){
   if(t.sparkle){ c.fillStyle='#ffffff';
     c.fillRect(4*SCALE,4*SCALE,SCALE,SCALE); c.fillRect(11*SCALE,5*SCALE,SCALE,SCALE);
   }
+  // リベット（ガーディアン＝砲台耐性の機械装甲）
+  if(t.bolt){ const pts=[[4,5],[11,5],[4,10],[11,10]];
+    pts.forEach(([x,y])=>{ c.fillStyle='#cdd8e4'; c.fillRect(x*SCALE,y*SCALE,SCALE,SCALE);
+      c.fillStyle='#5d6b7a'; c.fillRect(x*SCALE+SCALE*0.3,y*SCALE+SCALE*0.3,SCALE*0.4,SCALE*0.4); });
+  }
   return cv;
 }
 function sprite(type){ if(!spriteCache[type]) spriteCache[type]=makeSprite(type); return spriteCache[type]; }
@@ -428,6 +439,9 @@ const SLIME = {
   worm:   {name:'ひょろり', color:'#c77dff', hp:5,  speed:42, size:40, coin:4, leak:6, shape:'tall2', splitOnDeath:['mini','mini']},
   pan:    {name:'ぺたん',   color:'#62c6ff', hp:6,  speed:34, size:48, coin:4, leak:7, shape:'wide', splitOnDeath:['blue','blue']},
   jumbo:  {name:'ジャンボ', color:'#ffb050', hp:14, speed:22, size:58, coin:9, leak:12,shape:'wide', splitOnDeath:['tall','pan']},
+  // ▼ 耐性もち（×盾で表示）
+  guardian:{name:'ガーディアン', color:'#46708c', hp:13, speed:18, size:40, coin:6, leak:10, immune:'auto', armor:true, bolt:true, angry:true},
+  barrier: {name:'バリア',      color:'#8390ff', hp:8,  speed:30, size:36, coin:5, leak:7,  resistRandom:true},
   king:   {name:'キング',   color:'#7c5cff', hp:28, speed:18, size:54, coin:12,leak:18, crown:true, angry:true, splitOnDeath:['normal','normal','green2']},
   devil:  {name:'デビル',   color:'#e0413f', hp:20, speed:30, size:42, coin:8, leak:14, horns:true, angry:true, wobble:2},
   boss:   {name:'ボス',     color:'#b03cff', hp:260,speed:13, size:88, coin:120,leak:50, crown:true, angry:true, boss:true, armorReduce:0.2, splitOnDeath:['devil','red','red']},
@@ -449,6 +463,8 @@ const WEAPONS = [
   {id:'thunder',name:'サンダー', icon:'🌩️', desc:'近くの敵へ最大5体に連鎖。', power:5, range:60, cd:700, cost:900, sound:'thunder', chain:5, chainRange:120},
 ];
 const WMAP={}; WEAPONS.forEach(w=>WMAP[w.id]=w);
+/* 耐性バッジに出すアイコン（×付き盾で表示） */
+const IMMUNE_ICON={hammer:'🔨',bomb:'💣',beam:'⚡',ice:'❄️',poison:'☠️',thunder:'🌩️',auto:'🤖'};
 
 /* ===================== ゲーム状態 ===================== */
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
@@ -493,8 +509,8 @@ function pickType(){
   add('normal',6); add('blue',4); add('green2',3);
   if(w>=2){ add('mini',3); add('speed',2); }
   if(w>=3){ add('red',3); add('gold',1); }
-  if(w>=4){ add('split',2); add('shield',2); add('tall',2); add('pan',2); }
-  if(w>=5){ add('armor',2); add('ghost',2); add('worm',2); }
+  if(w>=4){ add('split',2); add('shield',2); add('tall',2); add('pan',2); add('barrier',2); }
+  if(w>=5){ add('armor',2); add('ghost',2); add('worm',2); add('guardian',2); }
   if(w>=6){ add('bomb',2); add('healer',1); }
   if(w>=7){ add('jumbo',1); }
   if(w>=8){ add('devil',2); add('gold',1); }
@@ -503,9 +519,12 @@ function pickType(){
 }
 function spawnSlime(type,x,y,scale){
   const t=SLIME[type];
-  const late=Math.max(0, G.wave-15);                 // wave15以降の追加難易度
-  const hpMul=1+(G.wave-1)*0.18 + late*0.05;          // HPを少しずつ上乗せ
-  const spdMul=1+Math.min(late*0.022, 0.6);           // スピードを少しずつ上乗せ(最大+60%)
+  const isBoss=!!t.boss;
+  const late=Math.max(0, G.wave-15);                  // wave15以降の追加難易度（雑魚のみ）
+  const hpMul = isBoss
+    ? 1+(G.wave-1)*0.10                                // ボスHPは控えめ（倒せる範囲に）
+    : 1+(G.wave-1)*0.12 + late*0.03;                   // 雑魚HPは緩やかに上げる
+  const spdMul = isBoss ? 1 : 1+Math.min(late*0.012, 0.35); // 雑魚スピードUPは控えめ(最大+35%)
   const size=(t.size)*(scale||1);
   const s={
     type, t, x: x!==undefined?x:(20+Math.random()*(W-40)),
@@ -518,6 +537,8 @@ function spawnSlime(type,x,y,scale){
     spawnCd:t.spawnGap||0,
   };
   s.maxhp=s.hp;
+  if(t.immune) s.immune=t.immune;
+  if(t.resistRandom){ const P=['hammer','bomb','beam','ice','poison','thunder']; s.immune=P[(Math.random()*P.length)|0]; }
   G.slimes.push(s);
 }
 function spawnBoss(){
@@ -525,7 +546,7 @@ function spawnBoss(){
   const roster = G.wave<10 ? ['boss']
                : G.wave<20 ? ['boss','mother','behemoth']
                : ['boss','mother','titan','behemoth','overlord'];
-  const count = G.wave>=30 ? 3 : G.wave>=18 ? 2 : 1;   // 進むほど同時出現
+  const count = G.wave>=45 ? 4 : G.wave>=30 ? 3 : G.wave>=18 ? 2 : 1;   // 進むほど同時出現
   for(let i=0;i<count;i++){
     const bt = roster[(Math.random()*roster.length)|0];
     const bx = W*((i+1)/(count+1));
@@ -534,13 +555,19 @@ function spawnBoss(){
 }
 
 /* ===================== ダメージ処理 ===================== */
-function damageSlime(s, dmg, fromWeapon){
-  if(s.dead) return;
-  if(s.shield>0){ s.shield--; s.flash=6; Sound.play('ice'); spawnParticles(s.x,s.y,'#9fe', 4); return; }
+function damageSlime(s, dmg, src){
+  if(s.dead) return false;
+  // 耐性（その攻撃/オート砲台は無効）
+  if(s.immune && src===s.immune){
+    s.flash=4; if(Math.random()<0.5) spawnParticles(s.x, s.y-s.r*0.6, '#bfe0ff', 2);
+    return false;
+  }
+  if(s.shield>0){ s.shield--; s.flash=6; Sound.play('ice'); spawnParticles(s.x,s.y,'#9fe', 4); return false; }
   let d=dmg;
   if(s.t.armorReduce) d=Math.max(1,Math.round(d*(1-s.t.armorReduce)));
   s.hp-=d; s.flash=6;
   if(s.hp<=0){ killSlime(s); }
+  return true;
 }
 function killSlime(s){
   if(s.dead) return; s.dead=true;
@@ -551,7 +578,12 @@ function killSlime(s){
   addFloat(s.x,s.y-s.r,'+'+coin+(G.combo>2?(' x'+G.combo):''),'#ffd23f');
   spawnParticles(s.x,s.y,s.t.color, s.t.boss?26:10);
   Sound.play('kill'); Sound.play('coin');
-  if(s.t.boss){ G.shake=14; }
+  if(s.t.boss){ G.shake=14;
+    const extra=Math.floor(Math.max(0,G.wave-25)/12);   // wave37で+1、49で+2…
+    for(let q=0;q<extra && G.slimes.length<80;q++){
+      spawnSlime(Math.random()<0.5?'mini':'normal', s.x+(Math.random()-0.5)*46, s.y, 0.9);
+    }
+  }
   if(s.t.blast){ // ボムは死亡時に周囲スライムへ余波
     areaDamage(s.x,s.y,70,3,null,true); spawnParticles(s.x,s.y,'#ff8a3c',16); Sound.play('bomb');
   }
@@ -588,10 +620,10 @@ function fireWeapon(x,y){
     // 最寄り1体（範囲内）に高威力
     let best=null,bd=1e9;
     for(const s of G.slimes){ if(s.dead) continue; const d=(s.x-x)**2+(s.y-y)**2; if(d<bd && d<=(rng+s.r)**2){bd=d;best=s;} }
-    if(best){ damageSlime(best,pw); spawnParticles(x,y,'#fff',4); }
+    if(best){ damageSlime(best,pw,'hammer'); spawnParticles(x,y,'#fff',4); }
   } else if(w.id==='beam'){
     // 縦の柱（幅 rng*2）に貫通
-    for(const s of G.slimes.slice()){ if(s.dead) continue; if(Math.abs(s.x-x)<=rng+s.r) damageSlime(s,pw); }
+    for(const s of G.slimes.slice()){ if(s.dead) continue; if(Math.abs(s.x-x)<=rng+s.r) damageSlime(s,pw,'beam'); }
     G.shake=Math.max(G.shake,3);
   } else if(w.id==='thunder'){
     // 連鎖
@@ -604,15 +636,17 @@ function fireWeapon(x,y){
       G.effects.push({type:'bolt', x1:cur.x,y1:cur.y,x2:best.x,y2:best.y, life:10,max:10, color:'#bdf'});
       cur={x:best.x,y:best.y};
     }
-    targets.forEach(s=>damageSlime(s,pw));
+    targets.forEach(s=>damageSlime(s,pw,'thunder'));
   } else {
     // splash系（bomb/ice/poison）
     for(const s of G.slimes.slice()){ if(s.dead) continue;
       const dx=s.x-x, dy=s.y-y;
       if(dx*dx+dy*dy <= (rng+s.r)*(rng+s.r)){
-        damageSlime(s,pw);
-        if(w.freeze){ s.frozen=Math.max(s.frozen,w.freeze); }
-        if(w.poison){ s.poison={left:w.poison.dur, dps:w.poison.dps, tick:0}; }
+        const hit=damageSlime(s,pw,w.id);
+        if(hit){
+          if(w.freeze){ s.frozen=Math.max(s.frozen,w.freeze); }
+          if(w.poison){ s.poison={left:w.poison.dur, dps:w.poison.dps, tick:0}; }
+        }
       }
     }
     if(w.id==='bomb') G.shake=Math.max(G.shake,6);
@@ -632,12 +666,13 @@ function addFloat(x,y,text,color){ G.floats.push({x,y,text,color,life:1}); }
 /* ===================== オートターレット ===================== */
 function autoFire(){
   if(G.upg.auto<=0||G.slimes.length===0) return;
-  // 一番下のスライムへハンマー相当
+  // 砲台耐性の敵は狙わない。一番下の対象へ。
   let target=null,by=-1;
-  for(const s of G.slimes){ if(s.y>by){by=s.y;target=s;} }
+  for(const s of G.slimes){ if(s.dead||s.immune==='auto') continue; if(s.y>by){by=s.y;target=s;} }
   if(target){
-    const dmg=2+G.upg.auto;
-    damageSlime(target,dmg);
+    let dmg=2+G.upg.auto;
+    if(target.t.boss) dmg=Math.max(1, Math.round(dmg*0.4)); // ボスへは砲台火力を抑える
+    damageSlime(target,dmg,'auto');
     G.effects.push({type:'auto',x:target.x,y:target.y,r:18,life:10,max:10,color:'#7dffae'});
   }
 }
@@ -667,7 +702,7 @@ function update(dt, now){
     for(let i=0;i<burst;i++) spawnSlime(pickType());
   }
   // オート
-  if(G.upg.auto>0){ G.autoTimer+=dt; const gap=900-G.upg.auto*120; if(G.autoTimer>=gap){ G.autoTimer=0; autoFire(); } }
+  if(G.upg.auto>0){ G.autoTimer+=dt; const gap=Math.max(500, 1000 - G.upg.auto*80); if(G.autoTimer>=gap){ G.autoTimer=0; autoFire(); } }
 
   // スライム更新
   for(const s of G.slimes.slice()){
@@ -691,9 +726,13 @@ function update(dt, now){
       G.effects.push({type:'heal',x:s.x,y:s.y,r:90,life:14,max:14,color:'#ff8ad0'});
     } }
     // 雑魚を吐き出すボス
-    if(s.t.spawner){ s.spawnCd-=dt; if(s.spawnCd<=0 && G.slimes.length<72){ s.spawnCd=s.t.spawnGap;
-      const z=s.t.spawnTypes[(Math.random()*s.t.spawnTypes.length)|0];
-      spawnSlime(z, s.x+(Math.random()-0.5)*36, s.y+s.r*0.5);
+    // 雑魚を吐き出すボス（進むほど吐く数が増える）
+    if(s.t.spawner){ s.spawnCd-=dt; if(s.spawnCd<=0 && G.slimes.length<78){ s.spawnCd=s.t.spawnGap;
+      const spit=1+Math.floor(Math.max(0,G.wave-20)/15);  // wave35で2体、50で3体…
+      for(let q=0;q<spit;q++){
+        const z=s.t.spawnTypes[(Math.random()*s.t.spawnTypes.length)|0];
+        spawnSlime(z, s.x+(Math.random()-0.5)*40, s.y+s.r*0.5);
+      }
       G.effects.push({type:'heal',x:s.x,y:s.y,r:s.r+10,life:12,max:12,color:'#9effc0'});
       Sound.play('coin');
     } }
@@ -768,6 +807,19 @@ function render(now){
       ctx.fillStyle='#0008'; ctx.fillRect(bx,by,bw,bh);
       ctx.fillStyle = s.hp/s.maxhp>0.4?'#7dffae':'#ff5b6e';
       ctx.fillRect(bx,by,bw*(s.hp/s.maxhp),bh);
+    }
+    // 耐性バッジ（×付き盾：この武器/砲台は効かない）
+    if(s.immune){
+      const bx=s.x+s.r*0.66, by=s.y-s.r*0.66, R=11;
+      ctx.fillStyle='#11233e'; ctx.strokeStyle='#bcd6ff'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(bx,by,R,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.font='12px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.globalAlpha=0.95; ctx.fillText(IMMUNE_ICON[s.immune]||'🛡️', bx, by+0.5); ctx.globalAlpha=1;
+      ctx.strokeStyle='#ff4d5e'; ctx.lineWidth=2.4;
+      ctx.beginPath();
+      ctx.moveTo(bx-R*0.72,by-R*0.72); ctx.lineTo(bx+R*0.72,by+R*0.72);
+      ctx.moveTo(bx+R*0.72,by-R*0.72); ctx.lineTo(bx-R*0.72,by+R*0.72);
+      ctx.stroke();
     }
   }
 
@@ -875,7 +927,7 @@ cv.addEventListener('pointerdown',e=>{
 let shopTab='weapons';
 function openShop(){ if(G.state!=='playing') return; G.state='shop'; el('shop').classList.add('open'); renderShop(); }
 function closeShop(){ if(G.state!=='shop') return; G.state='playing'; el('shop').classList.remove('open'); last=performance.now(); buildWeaponBar(); }
-function upgCost(id){ return Math.round(40*Math.pow(1.55, G.wlevel[id]-1)); }
+function upgCost(id){ const base=36 + (WMAP[id].cost||0)*0.12; return Math.round(base*Math.pow(1.55, G.wlevel[id]-1)); }
 function globalCost(key){ const base={coreMax:80, coinMul:120, auto:150}[key]; return Math.round(base*Math.pow(1.7, G.upg[key])); }
 function renderShop(){
   el('shopCoin').textContent=G.coins;
